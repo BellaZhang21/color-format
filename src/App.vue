@@ -40,16 +40,16 @@
               <el-color-picker v-model="inputColor" @change="checkInput"></el-color-picker>
             </div>
             <el-button type="text" plain @click="changeColor">生成</el-button>
-            <div class="warn" v-if="warn">输入格式错误</div>
+            <div class="warn">{{warn}}</div>
           </el-col>
           <el-col :span="2"></el-col>
           <el-col :span="18">
             <div class="chartGroup">
-              <Bar v-show="chartIndex === 1" :showStatus="chartIndex" :title="title" :attrNum="attrNum" 
+              <Bar v-show="chartIndex === 1" :showStatus="chartIndex" :title="title"
                    :barData="chartData.barData" :palette="paletteRecColor"></Bar>
-              <Scatter v-show="chartIndex === 2" :showStatus="chartIndex" :title="title" :attrNum="attrNum" 
+              <Scatter v-show="chartIndex === 2" :showStatus="chartIndex" :title="title"
                        :scatterData="chartData.scatterData" :palette="paletteRecColor"></Scatter>
-              <LineC v-show="chartIndex === 3" :showStatus="chartIndex" :title="title" :attrNum="attrNum" 
+              <LineC v-show="chartIndex === 3" :showStatus="chartIndex" :title="title"
                      :lineData="chartData.lineData" :palette="paletteRecColor"></LineC>
             </div>
           </el-col>
@@ -88,7 +88,7 @@ export default {
       paletteData: {},
       showColorP: false,
       inputColor: '#aaa',
-      warn: false,
+      warn: '',
       attrNum: 0,
       chartData: {
         scatterData: {},
@@ -104,15 +104,9 @@ export default {
     };
   },
   async mounted () {
+    console.log('test:', d3.rgb(d3.lab(70, 0, 0)));
     // this.rawData = sample.rawData;
     this.paletteData = sample.paletteData;
-    this.$axios.post('/api/Lab/Translate', JSON.stringify({
-      L: 43,
-      A: 26,
-      B: 18
-    })).then(res => {
-      console.log(res);
-    });
   },
   methods: {
     // 数据上传
@@ -128,6 +122,7 @@ export default {
         barData: this.Common.lineDataInit(this.rawData),
         lineData: this.Common.lineDataInit(this.rawData)
       };
+      this.paletteData.paletteSize = Object.keys(this.rawData[0]).length - 1;
       this.chartIndex = 0;
       // 判断数据类型,推荐合适图表
       if (Object.keys(this.rawData[0]).length === 3) {
@@ -145,14 +140,19 @@ export default {
       // 数据类型推荐颜色
     },
     async changeColor () {
-      console.log(this.inputColor);
       this.paletteData.startPalette = [];
-      if (/^#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}$/.test(this.inputColor)) {
-        // this.paletteData.startPalette.push(this.hex2Lab(this.inputColor));
-        let res = await this.Common.paletteRec(this.paletteData);
-        console.log('res', res);
+      console.log(this.paletteData.paletteSize);
+      if (+this.paletteData.paletteSize > 0) {
+        if (/^#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}$/.test(this.inputColor)) {
+          this.paletteData.startPalette.push(this.hex2Lab(this.inputColor));
+          let res = await this.Common.paletteRec(this.paletteData);
+          console.log('res', res);
+          this.paletteRecColor = res;
+        } else {
+          this.warn = '颜色格式输入错误';
+        }
       } else {
-        this.warn = true;
+        this.warn = '请先加载数据';
       }
     },
     hex2Lab (color) {
@@ -163,7 +163,7 @@ export default {
       this.paletteRecColor = item;
     },
     checkInput (e) {
-      this.warn = false;
+      this.warn = '';
     },
     // 可视化类型选择
     menuSelect (index) {

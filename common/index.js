@@ -1,5 +1,7 @@
 import XLSX from 'xlsx';
 import axios from 'axios';
+import * as d3 from 'd3';
+
 export default {
   // excel识别
   importExcel (obj) {
@@ -142,23 +144,12 @@ export default {
   paletteRec (data) {
     return axios.post('/color/makePalette', JSON.stringify(data)).then(res => {
       if (+res.status === 200) {
-        return Promise.all(res.data.palette.map(e => {
-          return axios.post('/api/Lab/Translate', JSON.stringify({
-            L: e[0],
-            A: e[1],
-            B: e[2]
-          })).then(res => {
-            if (+res.status === 200) {
-              let paletteRes = '#';
-              res.data.Rgb.Members.map(e => {
-                paletteRes += this.prefixIntrger(Math.floor(e.Value).toString(16));
-              });
-              return Promise.resolve(paletteRes);
-            } else {
-              return Promise.reject(new Error('lab transform rgb fail'));
-            }
-          });
-        }));
+        let convertRGB = res.data.palette.map(e => {
+          let toRGB = d3.rgb(d3.lab(e[0], e[1], e[2]));
+          console.log(e, toRGB);
+          return '#' + this.formatHex(toRGB.r) + this.formatHex(toRGB.g) + this.formatHex(toRGB.b);
+        });
+        return Promise.resolve(convertRGB);
       }
     }).then(res => {
       if (res.length > 0) {
@@ -167,6 +158,9 @@ export default {
     }).catch(err => {
       console.log(err);
     });
+  },
+  formatHex (num) {
+    return this.prefixIntrger(Math.floor(num).toString(16), 2);
   },
   // 自动补0
   prefixIntrger (num, length) {
