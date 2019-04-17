@@ -28,7 +28,7 @@ export default {
       }
     },
     palette: function () {
-      if (this.showStatus === 2 && this.palette.length > 0 && Object.keys(this.barData).length > 0) {
+      if (this.showStatus === 1 && this.palette.length > 0 && Object.keys(this.barData).length > 0) {
         this.chartInit();
         this.option.color = this.palette;
         this.myChart.setOption(this.option);
