@@ -9,13 +9,18 @@
     "paletteSize": 0,
     "weights": {
       "ciede2000": 0,
-      "nameDifference": 0,
-      "nameUniqueness": 0,
+      "nameDifference": 0.1,
+      "nameUniqueness": 0.1,
       "pairPreference": 1
     },
     "hueFilters": [],
     "lightnessRange": ["25", "85"],
     "startPalette": []
-  }
+  },
+  "paletteInit": [
+    ["#c23531", "#2f4554", "#61a0a8", "#d48265", "#91c7ae", "#749f83", "#ca8622", "#bda29a", "#6e7074", "#546570", "#c4ccd3"],
+    ["#00204a", "#005792", "#448ef6", "#fdb44b", "#f7e0a3", "#f09c67", "#4c8492"],
+    ["#4f9da6", "#233142", "#facf5a", "#ff5959", "#900c3f", "#005792", "#f34573"]
+  ]
 }
 

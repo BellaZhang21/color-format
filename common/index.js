@@ -1,6 +1,7 @@
 import XLSX from 'xlsx';
 import axios from 'axios';
 import * as d3 from 'd3';
+import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from 'constants';
 
 export default {
   // excel识别
@@ -140,6 +141,27 @@ export default {
     return formatData;
     // formatData.push(attr);
   },
+  formatDataInit (data, type) {
+    let info = {};
+    let temp = data.slice(1, data.length);
+    info.x = temp.map(e => e[0] + '');
+    let series = [];
+    for (let i = 1; i < data.length; i++) {
+      for (let j = 1; j < data[i].length; j++) {
+        if (i === 1) {
+          series.push({
+            name: data[0][j],
+            type: type,
+            data: [data[i][j]]
+          });
+        } else {
+          series[j - 1].data.push(data[i][j]);
+        }
+      }
+    }
+    info.series = series;
+    return info;
+  },
   // 配色方案获取
   paletteRec (data) {
     return axios.post('/color/makePalette', JSON.stringify(data)).then(res => {
@@ -147,6 +169,10 @@ export default {
         let convertRGB = res.data.palette.map(e => {
           let toRGB = d3.rgb(d3.lab(e[0], e[1], e[2]));
           console.log(e, toRGB);
+          toRGB.r = toRGB.r < 0 ? 0 : toRGB.r;
+          toRGB.g = toRGB.g < 0 ? 0 : toRGB.g;
+          toRGB.b = toRGB.b < 0 ? 0 : toRGB.b;
+
           return '#' + this.formatHex(toRGB.r) + this.formatHex(toRGB.g) + this.formatHex(toRGB.b);
         });
         return Promise.resolve(convertRGB);
@@ -165,5 +191,25 @@ export default {
   // 自动补0
   prefixIntrger (num, length) {
     return (Array(length).join('0') + num).slice(-length);
+  },
+  colorAdd (oldValue, newValue, data, type) {
+    if (oldValue < newValue) {
+      for (let i = oldValue + 1; i <= newValue; i++) {
+        data += type / i;
+        if (data >= 1) {
+          data -= type / i;
+          break;
+        }
+      }
+    } else {
+      for (let i = oldValue; i > newValue; i--) {
+        data -= type / i;
+        if (data <= 0) {
+          data += type / i;
+          break;
+        }
+      }
+    }
+    return +data.toFixed(2);
   }
 };

@@ -1,6 +1,5 @@
 <template>
 <div class="test">
-  <p>{{ tableData }}</p>
   <el-table
     :data="tableData"
     border

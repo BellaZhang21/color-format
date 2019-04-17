@@ -18,19 +18,14 @@ export default {
   },
   watch: {
     showStatus: function () {
-      if (this.showStatus === 3 && this.lineData.length > 0) {
+      if (this.showStatus === 3 && Object.keys(this.lineData).length > 0) {
         this.chartInit();
       }
     },
-    lineData: function () {
-      if (this.lineData.length > 0) {
+    palette: function () {
+      if (this.palette.length > 0 && Object.keys(this.lineData).length > 0) {
+        console.log('line palette change');
         this.chartInit();
-      }
-    },
-    palette: function  () {
-      if (this.palette.length > 0 && this.lineData.length > 0) {
-        this.option.color = this.palette;
-        this.myChart.setOption(this.option);
       }
     }
   },
@@ -43,13 +38,13 @@ export default {
       this.myChart = this.Echarts.init(document.getElementById('line'));
       // 数据格式化
       this.formatData = this.lineData;
-      let num = this.formatData[0].length - 1;
-      let seriesData = [];
-      while (num--) {
-        seriesData.push({
-          type: 'line'
-        });
-      }
+      // let num = this.formatData[0].length - 1;
+      // let seriesData = [];
+      // while (num--) {
+      //   seriesData.push({
+      //     type: 'line'
+      //   });
+      // }
       this.option = {
         title: {
           text: this.title
@@ -61,21 +56,25 @@ export default {
             saveAsImage: {}
           }
         },
-        dataset: {
-          // 提供一份数据。
-          source: this.formatData
-        },
+        // dataset: {
+        //   // 提供一份数据。
+        //   source: this.formatData
+        // },
         // 声明一个 X 轴，类目轴（category）。默认情况下，类目轴对应到 dataset 第一列。
-        xAxis: {type: 'category'},
+        xAxis: {
+          type: 'category',
+          data: this.formatData.x
+        },
         // 声明一个 Y 轴，数值轴。
         yAxis: {},
         // 声明多个 bar 系列，默认情况下，每个系列会自动对应到 dataset 的每一列。
-        series: seriesData
+        series: this.formatData.series
       };
       if (this.palette.length > 0) {
         this.option.color = this.palette;
       }
       this.myChart.setOption(this.option);
+      // size: 4
     }
   }
 };

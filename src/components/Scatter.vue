@@ -23,11 +23,13 @@ export default {
     },
     scatterData: function () {
       if (this.showStatus === 2 && Object.keys(this.scatterData).length > 0) {
+        console.log('scatter');
         this.chartInit();
       }
     },
-    palette: function  () {
+    palette: function () {
       if (this.palette.length > 0 && Object.keys(this.scatterData).length > 0) {
+        this.chartInit();
         this.option.color = this.palette;
         this.myChart.setOption(this.option);
       }
@@ -40,7 +42,6 @@ export default {
       // 基于准备好的dom，初始化echarts实例
       this.myChart = this.Echarts.init(document.getElementById('scatter'));
       let that = this;
-      let option = {};
       this.formatData = this.scatterData;
       let dataSeries = Object.keys(this.formatData.data).map(e => {
         return {
@@ -58,9 +59,9 @@ export default {
         },
         tooltip: {
           formatter: function (params) {
-            return params.seriesName + ' :<br/>'
-              + that.formatData.attr[0] + ':' + params.value[0] + '<br/>'
-              + that.formatData.attr[1] + ':' + params.value[1];
+            return params.seriesName + ' :<br/>' +
+            that.formatData.attr[0] + ':' + params.value[0] + '<br/>' +
+            that.formatData.attr[1] + ':' + params.value[1];
           }
         },
         toolbox: {
@@ -85,8 +86,8 @@ export default {
         this.option.color = this.palette;
       }
       this.myChart.setOption(this.option);
+      // size: 10
     }
-    
   }
 };
 </script>

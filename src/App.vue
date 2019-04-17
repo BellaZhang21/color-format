@@ -31,16 +31,23 @@
               </el-menu>
             </div>
             <div class="palette">
-              <div class="color-set" v-for="item in initPalette" @click="choosePalette(item)">
-                <div class="color-block" v-for="e in item" :style="{background: e}"></div>
+              <div class="color-set" v-for="(item, index) in initPalette" v-bind:key="index" @click="choosePalette(item)">
+                <div class="color-block" v-for="(e, idx) in item" v-bind:key="idx" :style="{background: e}"></div>
               </div>
             </div>
+            <el-radio v-model="radio" label="1">pair preference</el-radio>
+            <el-radio v-model="radio" label="2">perceptual distance</el-radio>
             <div class="autoColor">
               <el-input v-model="inputColor" placeholder="#000000" style="width:75%" maxlength=7 @input="checkInput"></el-input>
               <el-color-picker v-model="inputColor" @change="checkInput"></el-color-picker>
             </div>
             <el-button type="text" plain @click="changeColor">生成</el-button>
             <div class="warn">{{warn}}</div>
+            <div class="slider">
+              <el-slider v-if="chartIndex === 1" v-model="barSize" @change="optimizeColor" :min="10" :max="40"></el-slider>
+              <el-slider v-if="chartIndex === 2" v-model="pointSize" @change="optimizeColor" :min="3" :max="40"></el-slider>
+              <el-slider v-if="chartIndex === 3" v-model="lineSize" @change="optimizeColor" :min="1" :max="15"></el-slider>
+            </div>
           </el-col>
           <el-col :span="2"></el-col>
           <el-col :span="18">
@@ -89,22 +96,21 @@ export default {
       showColorP: false,
       inputColor: '#aaa',
       warn: '',
-      attrNum: 0,
+      radio: '1',
+      barSize: 20,
+      lineSize: 4,
+      pointSize: 10,
       chartData: {
         scatterData: {},
         barData: [],
         lineData: []
       },
-      initPalette: [
-        ['#aaa', '#999', '#666'],
-        ['#00f', '#00a', '#008'],
-        ['#f00', '#a00', '#800']
-      ],
+      initPalette: [],
       paletteRecColor: []
     };
   },
   async mounted () {
-    console.log('test:', d3.rgb(d3.lab(70, 0, 0)));
+    console.log('test:', d3.hsl('#abcabc'), d3.rgb(d3.hsl('#abcabc')));
     // this.rawData = sample.rawData;
     this.paletteData = sample.paletteData;
   },
@@ -119,10 +125,16 @@ export default {
       // 数据格式化
       this.chartData = {
         scatterData: this.Common.scatterDataInit(this.rawData),
-        barData: this.Common.lineDataInit(this.rawData),
-        lineData: this.Common.lineDataInit(this.rawData)
+        barData: this.Common.formatDataInit(this.Common.lineDataInit(this.rawData), 'bar'),
+        lineData: this.Common.formatDataInit(this.Common.lineDataInit(this.rawData), 'line')
       };
       this.paletteData.paletteSize = Object.keys(this.rawData[0]).length - 1;
+      let rawPalette = sample.paletteInit;
+      this.initPalette = [];
+      for (let i = 0; i < rawPalette.length; i++) {
+        this.initPalette.push(rawPalette[i].slice(0, this.paletteData.paletteSize));
+      }
+      console.log(this.initPalette);
       this.chartIndex = 0;
       // 判断数据类型,推荐合适图表
       if (Object.keys(this.rawData[0]).length === 3) {
@@ -131,18 +143,25 @@ export default {
         }
       }
       if (this.chartIndex === 0) {
-        if (Object.keys(this.rawData).length - 1 >= 4 || this.rawData.length >= 6) {
+        if (Object.keys(this.rawData[0]).length - 1 >= 4 || this.rawData.length >= 6) {
           this.chartIndex = 3;
         } else {
           this.chartIndex = 1;
         }
       }
+      this.warn = '';
       // 数据类型推荐颜色
     },
     async changeColor () {
       this.paletteData.startPalette = [];
-      console.log(this.paletteData.paletteSize);
       if (+this.paletteData.paletteSize > 0) {
+        if (this.radio === '1') {
+          this.paletteData.weights.ciede2000 = 0.1;
+          this.paletteData.weights.pairPreference = 0.9;
+        } else if (this.radio === '2') {
+          this.paletteData.weights.pairPreference = 0.1;
+          this.paletteData.weights.ciede2000 = 0.9;
+        }
         if (/^#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}$/.test(this.inputColor)) {
           this.paletteData.startPalette.push(this.hex2Lab(this.inputColor));
           let res = await this.Common.paletteRec(this.paletteData);
@@ -153,6 +172,71 @@ export default {
         }
       } else {
         this.warn = '请先加载数据';
+      }
+    },
+    // 标志大小改变优化颜色
+    optimizeColor (e) {
+      let chartDetail = {};
+      if (this.rawData.length > 0) {
+        if (this.chartIndex === 1) {
+          // bar
+          chartDetail = this.Echarts.init(document.getElementById('bar'));
+          let option = chartDetail.getOption();
+          let oldSize = 0;
+          for (let i = 0; i < option.series.length; i++) {
+            oldSize = option.series[i].barWidth;
+            console.log(oldSize);
+            option.series[i].barWidth = e + '%';
+          }
+          if (oldSize) {
+            oldSize = +oldSize.replace('%', '');
+            option.color = option.color.map(item => {
+              let hsl = d3.hsl(item);
+              hsl.s = +this.Common.colorAdd(oldSize, e, hsl.s, 0.09);
+              hsl.l = +this.Common.colorAdd(oldSize, e, hsl.l, 0.09);
+              let toRGB = d3.rgb(hsl);
+              return '#' + this.Common.formatHex(toRGB.r) + this.Common.formatHex(toRGB.g) + this.Common.formatHex(toRGB.b);
+            });
+          }
+          chartDetail.setOption(option);
+        } else if (this.chartIndex === 2) {
+          // scatter
+          chartDetail = this.Echarts.init(document.getElementById('scatter'));
+          let option = chartDetail.getOption();
+          let oldSize = 0;
+          for (let i = 0; i < option.series.length; i++) {
+            oldSize = option.series[i].symbolSize;
+            option.series[i].symbolSize = +e;
+          }
+          option.color = option.color.map(item => {
+            let hsl = d3.hsl(item);
+            hsl.s = +this.Common.colorAdd(oldSize, e, hsl.s, 0.1);
+            hsl.l = +this.Common.colorAdd(oldSize, e, hsl.l, 0.1);
+            let toRGB = d3.rgb(hsl);
+            return '#' + this.Common.formatHex(toRGB.r) + this.Common.formatHex(toRGB.g) + this.Common.formatHex(toRGB.b);
+          });
+          chartDetail.setOption(option);
+        } else if (this.chartIndex === 3) {
+          // line
+          let lineChartDetail = this.Echarts.init(document.getElementById('line'));
+          let option = lineChartDetail.getOption();
+          let oldSize = 0;
+          for (let i = 0; i < option.series.length; i++) {
+            oldSize = option.series[i].lineStyle.width;
+            option.series[i].lineStyle.width = +e;
+            option.series[i].symbolSize = +e + 1;
+          }
+          option.color = option.color.map(item => {
+            let hsl = d3.hsl(item);
+            hsl.s = +this.Common.colorAdd(oldSize, e, hsl.s, 0.09);
+            hsl.l = +this.Common.colorAdd(oldSize, e, hsl.l, 0.09);
+            let toRGB = d3.rgb(hsl);
+            return '#' + this.Common.formatHex(toRGB.r) + this.Common.formatHex(toRGB.g) + this.Common.formatHex(toRGB.b);
+          });
+          lineChartDetail.setOption(option);
+        }
+      } else {
+        this.warn = '请导入数据';
       }
     },
     hex2Lab (color) {
