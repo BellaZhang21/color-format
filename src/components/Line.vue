@@ -23,7 +23,7 @@ export default {
       }
     },
     palette: function () {
-      if (this.palette.length > 0 && Object.keys(this.lineData).length > 0) {
+      if (this.showStatus === 3 && this.palette.length > 0 && Object.keys(this.lineData).length > 0) {
         console.log('line palette change');
         this.chartInit();
       }

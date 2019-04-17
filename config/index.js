@@ -17,13 +17,6 @@ module.exports = {
         pathRewrite: {
             '^/color': ''
         }
-      },
-      '/api': {
-        target: "http://colormine.org/api",
-        changeOrigin: true,
-        pathRewrite: {
-            '^/api': ''
-        }
       }
     },
 
